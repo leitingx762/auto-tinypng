@@ -76,7 +76,7 @@ const compressStart = async queue => {
     const res = await fileUpload(filePath)
     if (!res) return
     // 上传间隔,一般不用开
-    await sleep(500)
+    // await sleep(500)
     // 异步下载
     downloadFile(res, filePath)
   }
