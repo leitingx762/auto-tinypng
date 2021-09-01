@@ -65,7 +65,7 @@ function fileFilter (path) {
     checkPath(Path.dirname(path))
     fs.copyFile(path, path.replace(root, output), (err, res) => {
       if (err) return console.log(err)
-      console.log(`[${path}] 已跳过压缩`)
+      console.log(`跳过压缩 [${path}]`)
     })
   } else {
     // 文件夹递归
@@ -134,7 +134,7 @@ function downloadFile ({ res: compressFile, info }, filePath) {
           { encoding: "binary" }
         )
         console.log(
-          `${info} 压缩成功 \n原始大小: ${compressFile.input.size}，压缩大小: ${compressFile.output.size}，优化比例 ${compressFile.output.ratio}`
+          `压缩成功 ${info} \n原始大小: ${compressFile.input.size}，压缩大小: ${compressFile.output.size}，优化比例 ${compressFile.output.ratio}`
         )
       } catch (err) {
         console.error(`${info} 写入文件失败`, err)
@@ -147,5 +147,5 @@ function downloadFile ({ res: compressFile, info }, filePath) {
 
 // RUA!!
 loadFolder(root)
-console.log('压缩队列', uploadQueue.reduce((str, fileName) => { return `${str}\n${fileName}` }, ''))
+console.log('压缩队列 : \n', uploadQueue.join('\n'))
 compressStart(uploadQueue)
