@@ -32,7 +32,7 @@ const root = "source",
  */
 const sleep = time => new Promise(ok => setTimeout(ok, time))
 
-function checkPath(path) {
+function checkPath (path) {
   const outputPath = path.replace(root, output)
   if (fs.existsSync(outputPath)) return
   try {
@@ -45,7 +45,7 @@ function checkPath(path) {
  * 加载文件夹,生成压缩队列
  * @param {string} folder 文件夹路径
  */
-function loadFolder(folder) {
+function loadFolder (folder) {
   const list = fs.readdirSync(folder)
   list.forEach(item => {
     if (item !== ".DS_Store") fileFilter(Path.join(folder, item))
@@ -55,7 +55,7 @@ function loadFolder(folder) {
  * 处理路径,符合规则的文件加入队列,文件夹递归,不符合的文件直接复制到输出目录
  * @param {string} path
  */
-function fileFilter(path) {
+function fileFilter (path) {
   const stats = fs.statSync(path)
   if (stats.isFile()) {
     // 是文件
@@ -63,7 +63,10 @@ function fileFilter(path) {
       && exts.includes(Path.extname(path))
     ) return uploadQueue.push(path)
     checkPath(Path.dirname(path))
-    fs.copyFile(path, path.replace(root, output))
+    fs.copyFile(path, path.replace(root, output), (err, res) => {
+      if (err) return console.log(err)
+      console.log(`[${path}] 已跳过压缩`)
+    })
   } else {
     // 文件夹递归
     checkPath(path)
@@ -88,11 +91,11 @@ const compressStart = async queue => {
  * @param {string} filePath
  * @returns {Object} 包含上传和下载信息的对象
  */
-function fileUpload(filePath) {
+function fileUpload (filePath) {
   const info = `${++current}/${uploadQueue.length} [${Path.basename(filePath)}]`
   console.log(`开始上传 ${info}`)
   return new Promise((resolve, reject) => {
-    const _opt = {...options}
+    const _opt = { ...options }
     _opt.headers['X-Forwarded-For'] = Array.from('1111').map(() => ~~(Math.random() * 255)).join('.')
     const req = https.request(options, function (res) {
       res.on("data", buf => {
@@ -116,7 +119,7 @@ function fileUpload(filePath) {
  * @param {any} info 说明文字,log用
  * @param {any} filePath 要写入的文件路径
  */
-function downloadFile({ res: compressFile, info }, filePath) {
+function downloadFile ({ res: compressFile, info }, filePath) {
   const url = new URL(compressFile.output.url)
   const req = https.request(url, res => {
     let body = ""
@@ -125,7 +128,11 @@ function downloadFile({ res: compressFile, info }, filePath) {
     res.on("end", () => {
       try {
         // 下载完毕写入本地
-        fs.writeFileSync(filePath.replace(root, output), body, { encoding: "binary" })
+        fs.writeFileSync(
+          filePath.replace(root, output),
+          body,
+          { encoding: "binary" }
+        )
         console.log(
           `${info} 压缩成功 \n原始大小: ${compressFile.input.size}，压缩大小: ${compressFile.output.size}，优化比例 ${compressFile.output.ratio}`
         )

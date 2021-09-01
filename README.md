@@ -11,6 +11,5 @@
 ## PS
 只能压缩`5M以内`的`png/jpg` tinypng定的(⊙ω⊙)  
 压不了的其他文件会原样复制到output文件夹内.  
-没用流...超大文件不知道会不会卡.  
 ![栗子](./栗子.png)  
 感谢[@zhanyuzhang](https://www.shuzhiduo.com/A/RnJWyXXydq/)提供随机IP思路
