@@ -16,7 +16,7 @@ const root = "source",
   options = {
     method: "POST",
     hostname: "tinypng.com",
-    path: "/web/shrink",
+    path: "/backend/opt/shrink",
     headers: {
       rejectUnauthorized: true,
       "Postman-Token": Date.now(),
@@ -26,6 +26,13 @@ const root = "source",
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36",
     },
   }
+const COLOR = {
+  success: "32",
+  complete: "34",
+  error: "31",
+  over: "42"
+}
+const CStr = (color, str) => `\x1b[${color}m${str}\x1b[0m`
 /**
  * 延时函数
  * @param {number} time 单位毫秒
@@ -75,13 +82,16 @@ function fileFilter (path) {
 }
 
 const compressStart = async queue => {
+  let done = () => {}
   for await (const filePath of queue) {
     const res = await fileUpload(filePath)
     if (!res) return
     // 上传间隔,一般不用开
     // await sleep(500)
     // 异步下载
-    downloadFile(res, filePath)
+    const [end] = queue.slice(-1)
+    if (end === filePath) done = () => console.log(`${CStr(COLOR.over, '文件已全部处理')}`)
+    downloadFile(res, filePath, done)
   }
 }
 
@@ -93,20 +103,20 @@ const compressStart = async queue => {
  */
 function fileUpload (filePath) {
   const info = `${++current}/${uploadQueue.length} [${Path.basename(filePath)}]`
-  console.log(`开始上传 ${info}`)
+  console.log(`${CStr(COLOR.success, '开始上传')} ${info}`)
   return new Promise((resolve, reject) => {
     const _opt = { ...options }
     _opt.headers['X-Forwarded-For'] = Array.from('1111').map(() => ~~(Math.random() * 255)).join('.')
-    const req = https.request(options, function (res) {
+    const req = https.request(_opt, function (res) {
       res.on("data", buf => {
-        let res = JSON.parse(buf.toString())
-        if (res.error) return (console.error(`${info}：压缩失败！报错：${res.message}`), reject())
-        return resolve({ res, info })
+        const data = JSON.parse(buf.toString())
+        if (data.error) return (console.error(`${CStr(COLOR.error, '压缩失败')} ${info} 报错：${data.message}`), reject())
+        return resolve({ res: data, info })
       })
     })
     // 读取文件上传
     req.write(fs.readFileSync(filePath), "binary")
-    req.on("error", e => (console.error(`${info} 上传失败`, e), reject()))
+    req.on("error", e => (console.error(`${CStr(COLOR.error, '上传失败')} ${info}`, e), reject()))
     req.end()
   })
 }
@@ -119,7 +129,7 @@ function fileUpload (filePath) {
  * @param {any} info 说明文字,log用
  * @param {any} filePath 要写入的文件路径
  */
-function downloadFile ({ res: compressFile, info }, filePath) {
+function downloadFile ({ res: compressFile, info }, filePath, done) {
   const url = new URL(compressFile.output.url)
   const req = https.request(url, res => {
     let body = ""
@@ -134,14 +144,18 @@ function downloadFile ({ res: compressFile, info }, filePath) {
           { encoding: "binary" }
         )
         console.log(
-          `压缩成功 ${info} \n原始大小: ${compressFile.input.size}，压缩大小: ${compressFile.output.size}，优化比例 ${compressFile.output.ratio}`
+          `${CStr(COLOR.complete, '压缩成功')} ${info} \n原始大小: ${compressFile.input.size}，压缩大小: ${compressFile.output.size}，优化比例 ${compressFile.output.ratio}`
         )
       } catch (err) {
-        console.error(`${info} 写入文件失败`, err)
+        console.error(`${CStr(COLOR.error, '写入文件失败')} ${info}`, err)
       }
+      done()
     })
   })
-  req.on("error", e => console.error(`${info} 下载出错`, e))
+  req.on("error", e => {
+    console.error(`${CStr(COLOR.error, '下载出错')} ${info}`, e)
+    done()
+  })
   req.end()
 }
 

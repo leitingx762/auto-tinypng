@@ -1,4 +1,3 @@
-@echo off
-call node compress
-@echo Ñ¹ËõÒÑÍê³É
-@timeout /t 3 >NUL
+@call node compress
+REM @echo [1;36mÑ¹ËõÒÑÍê³É[0m
+@timeout /t 4 >NUL
